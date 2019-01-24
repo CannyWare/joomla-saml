@@ -1,3 +1,6 @@
+Edited saml plugin for Joomla.
+I didn't "re-pack" the plugin so the zip files still contain the old versions... just left them there to figure out how to zip the files if I ever need an installer...
+
 joomla-onelogin
 ===============
 
