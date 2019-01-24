@@ -1,3 +1,4 @@
+root@pb:/var/lib/docker/volumes/769f2f5e9c34614c66eb0b01fd72a7429ac852483fd6c24650bd1e50941a3c64/_data# cat plugins/user/oneloginsaml/oneloginsaml.php 
 <?php
 /**
  * @package     OneLogin SAML.Plugin
@@ -27,7 +28,18 @@ if (!defined('_JEXEC')) {
     // Instantiate the application.
     $app = JFactory::getApplication('site');
     $app->initialise();
-    $login_url = JRoute::_('../../../index.php?option=com_users&view=login', true);
+
+//    $login_url = JRoute::_('../../../index.php?option=com_users&view=login', true);
+
+//  this works but the menuitem is not selected
+//    $login_url = JRoute::_('../../../index.php?option=com_content&view=article&id=15', true);
+//    $redirectUrl = urlencode(base64_encode('index.php?option=com_content&view=article&id=15'));
+
+    $login_url = JRoute::_('../../../index.php?Itemid=169', true);
+    $redirectUrl = urlencode(base64_encode('index.php?Itemid=169'));
+
+    $redirectUrl = '&return='.$redirectUrl;
+    $home_url = $login_url . $redirectUrl;
 
     $oneLoginPlugin = JPluginHelper::getPlugin('user', 'oneloginsaml');
 
@@ -80,24 +92,48 @@ if (!defined('_JEXEC')) {
         if (empty($attrs)) {
             $username = $saml_auth->getNameId();
             $email = $username;
-        } else {
+/*	    $response->status = JAuthentication::STATUS_FAILURE;
+            return array( 'status' => LOGIN_ERROR_EXTERNAL_AUTH, 'error_msg'=> 'EMPTY_ATTRS', 'user_row'=> array('user_id' => $user->data['user_id']));
+	    $app->redirect($login_url, $response->message, 'error');
+*/	
+	} else {
             $nameMapping = $plgParams->get('onelogin_saml_attr_mapping_name');
             $usernameMapping = $plgParams->get('onelogin_saml_attr_mapping_username');
+	    $surnameMapping = 'urn:oid:2.5.4.4';
             $mailMapping = $plgParams->get('onelogin_saml_attr_mapping_mail');
             $groupsMapping = $plgParams->get('onelogin_saml_attr_mapping_groups');
             if (!empty($usernameMapping) && isset($attrs[$usernameMapping]) && !empty($attrs[$usernameMapping][0])) {
                 $username = $attrs[$usernameMapping][0];
             }
+/*	    if (empty($username)) {
+		$username = $saml_auth->getNameId();
+	    }
+*/
             if (!empty($mailMapping) && isset($attrs[$mailMapping]) && !empty($attrs[$mailMapping][0])) {
                 $email = $attrs[$mailMapping][0];
             }
+/*	    if (empty($email)) {
+	        $email = $username;
+	    }
+*/
             if (!empty($nameMapping) && isset($attrs[$nameMapping]) && !empty($attrs[$nameMapping][0])) {
-                $name = $attrs[$nameMapping][0];
-            }
+/*                $name = $attrs[$nameMapping][0];
+*/
+            	$name = $attrs[$nameMapping][0].' '.$attrs[$surnameMapping][0];
+/*		echo 'Cool.. this has been executed :-) ';
+		printf($name);
+*/
+	    }
             if (!empty($groupsMapping) && isset($attrs[$groupsMapping]) && !empty($attrs[$groupsMapping])) {
                 $saml_groups = $attrs[$groupsMapping];
-            } else {
+/*            	echo 'We do seem to have saml_groups...';
+		print_r($saml_groups);
+*/
+	    } else {
                 $saml_groups = array();
+/*		echo 'They say we dont have saml_groups..., printing the attrs after this line';
+		print_r($attrs);
+*/
             }
         }
 
@@ -106,12 +142,12 @@ if (!defined('_JEXEC')) {
 
         if (empty($username) && $matcher == 'username') {
             $response->status = JAuthentication::STATUS_FAILURE;
-            $response->message = 'NO_USERNAME';
+            $response->message = 'NO_USERNAME, these are the attrs: '.print_r($attrs);
             $app->redirect($login_url, $response->message, 'error');
         }
         if (empty($email) && $matcher == 'mail') {
             $response->status = JAuthentication::STATUS_FAILURE;
-            $response->message = 'NO_MAIL';
+            $response->message = 'NO_MAIL, these are the attrs: '.print_r($attrs);
             $app->redirect($login_url, $response->message, 'error');
         }
 
@@ -143,11 +179,12 @@ if (!defined('_JEXEC')) {
                 $model = JModelLegacy::getInstance('Registration', 'UsersModel');
 
                 $return = $model->register($data);
-
+		printf($return);
                 if ($return === false) {
                     $errors = $model->getErrors();
+                    print_r($data);
                     $response->status = JAuthentication::STATUS_FAILURE;
-                    $response->message = 'USER NOT EXISTS AND FAILED THE CREATION PROCESS';
+                    $response->message = 'USER NOT EXISTS AND FAILED THE CREATION PROCESS'.print_r($errors);
                     $app->redirect($login_url, $response->message, 'error');
                 }
 
@@ -161,11 +198,17 @@ if (!defined('_JEXEC')) {
 
 
                 $groups = get_mapped_groups($plgParams, $saml_groups);
+/*		print_r($plgParams);
+		print_r($saml_groups);
+		print_r($groups);
+*/
                 if (empty($groups)) {
                     $params = JComponentHelper::getParams('com_users');
                     // Get the default new user group, Registered if not specified.
                     $system = $params->get('new_usertype', 2);
                     $groups[] = $system;
+/*		    echo 'It seems groups is empty. :-(';
+*/
                 }
 
                 $user->set('groups', $groups);
@@ -177,7 +220,13 @@ if (!defined('_JEXEC')) {
                 // SSO SAML Login flag
                 $session->set('saml_login', 1);
 
-                $app->redirect($login_url, "Welcome $user->username", 'message');
+/*                $app->redirect($login_url, "Welcome $user->username", 'message');
+ 
+*/
+//               $app->redirect($home_url, "Welcome $user->username", 'message');
+//               $app->redirect($home_url);
+            echo '<script type="text/javascript">window.top.location.href = "https://www.cannyware.net/index.php/nl/uw-motor"</script>';
+
             } else {
                 $response->status = JAuthentication::STATUS_FAILURE;
                 $response->message = 'USER DOES NOT EXIST AND NOT ALLOWED TO CREATE';
@@ -209,7 +258,9 @@ if (!defined('_JEXEC')) {
             // SSO SAML Login flag
             $session->set('saml_login', 1);
 
-            $app->redirect($login_url, "Welcome $user->username", 'message');
+//            $app->redirect($home_url, "Welcome $user->username", 'message');
+//            $app->redirect($home_url);
+	    echo '<script type="text/javascript">window.top.location.href = "https://www.cannyware.net/index.php/nl/uw-motor"</script>';
         }
 
     } else if (isset($_GET['sls'])) {
