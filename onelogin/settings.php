@@ -11,7 +11,7 @@ $saml_settings = array (
     'sp' => array (
         'entityId' => ($sp_entity_id ? $sp_entity_id : 'php-saml'),
         'assertionConsumerService' => array (
-            'url' => JURI::root().'oneloginsaml.php?acs',
+            'url' => JURI::root().'plugins/user/oneloginsaml/oneloginsaml.php?acs',
         ),
         'singleLogoutService' => array (
             'url' => JURI::root().'oneloginsaml.php?sls',
